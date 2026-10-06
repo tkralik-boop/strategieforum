@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stratégie Fórum – program</title>
+<style>
+  :root{
+    --bg:#F5F6FA; --card:#FFFFFF; --ink:#14172B; --muted:#6B7088; --line:#E3E5EE;
+    --m:#2F54EB; --d:#D4256C; --e:#0B8F6C;
+    --mt:#EAEFFE; --dt:#FCE9F1; --et:#E1F5EE;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Avenir Next","Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.4}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  button:focus-visible,select:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  header{padding:calc(env(safe-area-inset-top) + 18px) 16px 10px;display:flex;align-items:flex-start;gap:12px}
+  header .t{flex:1}
+  h1{margin:0;font-size:28px;line-height:1.05;font-weight:800;letter-spacing:-.03em}
+  .sub{margin-top:4px;font-size:13px;color:var(--muted)}
+  .bell{width:44px;height:44px;border-radius:14px;background:var(--card);border:1px solid var(--line);
+    display:grid;place-items:center;flex:none;position:relative}
+  .bell svg{width:22px;height:22px}
+  .bell.on::after{content:"";position:absolute;top:9px;right:10px;width:9px;height:9px;border-radius:50%;
+    background:var(--e);border:2px solid var(--card)}
+
+  .sticky{position:sticky;top:0;z-index:20;background:var(--bg);padding:6px 16px 10px;
+    border-bottom:1px solid transparent}
+  .tabs{display:grid;grid-template-columns:1fr 1fr;background:#E8EAF2;border-radius:14px;padding:4px;gap:4px}
+  .tabs button{padding:10px;border-radius:11px;font-weight:700;font-size:15px;color:var(--muted)}
+  .tabs button[aria-selected=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(20,23,43,.12)}
+  .count{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;
+    background:var(--ink);color:#fff;font-size:12px;line-height:20px}
+  .chips{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:20px;
+    background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:600}
+  .chip i{width:10px;height:10px;border-radius:50%;display:block}
+  .chip[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  main{padding:6px 16px calc(env(safe-area-inset-bottom) + 40px);max-width:720px;margin:0 auto}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:6px 0 14px}
+  .panel h2{margin:0 0 4px;font-size:16px}
+  .panel p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{padding:10px 14px;border-radius:12px;background:var(--ink);color:#fff;font-weight:700;font-size:14px}
+  .btn.alt{background:#EEF0F6;color:var(--ink)}
+  select{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font:inherit;font-size:14px}
+  .status{font-size:13px;margin-top:10px;color:var(--muted)}
+
+  .slot{display:grid;grid-template-columns:54px 1fr;gap:10px;margin-top:16px}
+  .time{font-size:17px;font-weight:800;letter-spacing:-.02em;padding-top:12px;font-variant-numeric:tabular-nums}
+  .time small{display:block;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:0}
+  .items{display:flex;flex-direction:column;gap:10px;min-width:0}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    display:grid;grid-template-columns:6px 1fr;position:relative}
+  .card .bar{background:var(--c)}
+  .card.fav{background:var(--ct);border-color:var(--c)}
+  .card.now{box-shadow:0 0 0 2px var(--c)}
+  .card .body{padding:12px 12px 12px 14px;min-width:0}
+  .meta{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);font-weight:600;padding-right:44px}
+  .stage{color:var(--c);font-weight:800}
+  .live{background:var(--c);color:#fff;border-radius:8px;padding:1px 7px;font-size:11.5px;font-weight:800}
+  .title{margin:5px 0 0;font-size:17px;line-height:1.25;font-weight:750;letter-spacing:-.01em;padding-right:36px;
+    text-align:left;width:100%;display:block}
+  .spk{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+  .spk li{font-size:14px}
+  .spk b{font-weight:700}
+  .spk span{color:var(--muted)}
+  .desc{margin:10px 0 0;font-size:14px;color:#3A3E57;display:none;white-space:pre-line}
+  .card.open .desc{display:block}
+  .more{margin-top:8px;font-size:13px;font-weight:700;color:var(--c)}
+  .warn{margin-top:8px;font-size:12.5px;font-weight:700;color:#B4560A}
+
+  .heart{position:absolute;top:6px;right:6px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
+  .heart svg{width:24px;height:24px;fill:none;stroke:var(--muted);stroke-width:2;transition:transform .15s}
+  .heart[aria-pressed=true] svg{fill:var(--c);stroke:var(--c);transform:scale(1.08)}
+
+  .brk{margin-top:16px;padding:10px 14px;border-radius:14px;border:1.5px dashed #C9CCDB;color:var(--muted);
+    font-size:14px;font-weight:600;display:flex;justify-content:space-between}
+
+  .empty{text-align:center;padding:48px 20px;color:var(--muted)}
+  .empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+
+  #toast{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 10px);z-index:50;max-width:620px;margin:0 auto;
+    background:var(--ink);color:#fff;border-radius:16px;padding:14px 14px 14px 16px;display:none;gap:12px;align-items:center;
+    box-shadow:0 10px 30px rgba(20,23,43,.35)}
+  #toast.show{display:flex}
+  #toast .tx{flex:1;min-width:0}
+  #toast b{display:block;font-size:15px}
+  #toast span{font-size:13px;opacity:.85}
+  #toast button{background:#fff;color:var(--ink);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="toast" role="alert" aria-live="assertive">
+  <div class="tx"><b id="tt"></b><span id="ts"></span></div>
+  <button id="tclose">Zavrieť</button>
+</div>
+
+<header>
+  <div class="t">
+    <h1>Stratégie Fórum</h1>
+    <div class="sub">7. októbra 2026, DoubleTree by Hilton Bratislava</div>
+  </div>
+  <button class="bell" id="bell" aria-label="Upozornenia" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+  </button>
+</header>
+
+<div class="sticky">
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-all" aria-selected="true">Program</button>
+    <button role="tab" id="tab-fav" aria-selected="false">Môj program<span class="count" id="cnt">0</span></button>
+  </div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<main>
+  <section class="panel" id="panel" hidden>
+    <h2>Upozornenia na obľúbené prednášky</h2>
+    <p>Dáme ti vedieť pred začiatkom každej prednášky, ktorú si označíš srdiečkom.</p>
+    <div class="row">
+      <label for="lead" style="font-size:14px;font-weight:600">Upozorniť</label>
+      <select id="lead">
+        <option value="5">5 minút pred</option>
+        <option value="10">10 minút pred</option>
+        <option value="15">15 minút pred</option>
+        <option value="30">30 minút pred</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="perm">Zapnúť upozornenia</button>
+      <button class="btn alt" id="test">Vyskúšať</button>
+      <button class="btn alt" id="ics">Pridať do kalendára</button>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <div id="list"></div>
+</main>
+
+<script>
+/* ---------- DATA ---------- */
+const DAY = {y:2026, m:10, d:7};
+const STAGES = {
+  M:{name:"Marketing stage", short:"Marketing", color:"var(--m)", tint:"var(--mt)"},
+  D:{name:"Media stage",     short:"Media",     color:"var(--d)", tint:"var(--dt)"},
+  E:{name:"New Era stage",   short:"New Era",   color:"var(--e)", tint:"var(--et)"}
+};
+const S = [
+ // ---- MARKETING ----
+ {id:"m1",st:"M",a:"09:00",b:"09:30",t:"Keď tradícia nestačí: Premena značky Botas pre novú generáciu",
+  sp:[["Vít Staněk","CEO Botas"]],
+  d:"Značka Botas patrí k ikonám českého priemyslu. Ako ju ale premeniť na relevantnú voľbu pre novú generáciu zákazníkov? Vít Staněk otvorene porozpráva príbeh jej znovuzrodenia: stratégia, rebranding, výroba, marketing aj firemná kultúra. Podelí sa aj o chybné rozhodnutia, slepé uličky a lekcie. Firmu nedávno postihol ničivý požiar. Čo ich naučil?"},
+ {id:"m2",st:"M",a:"09:30",b:"10:00",t:"Marketing v ére AI agentov",
+  sp:[["Roman Pii Wagner","Architect of Transformation Design, Think Big Collective"]],
+  d:"AI už netvorí len obsah. Plánuje, analyzuje, navrhuje riešenia a čoraz častejšie sa stáva partnerom pri rozhodovaní. Čo to znamená pre marketingové tímy, ich kompetencie, procesy aj organizáciu práce? Strategický pohľad na marketing budúcnosti."},
+ {id:"m3",st:"M",a:"10:00",b:"10:30",t:"Keď AI v marketingu pomáha, ale aj škodí",
+  sp:[["Michal Pastier","Co-founder, Creative director, Darwin & the Machines a GoBigname"]],
+  d:"O novej ére a príležitostiach pre značky. Ako AI uchopiť a na čo si dať pozor pri budovaní výnimočných značiek, ktoré okrem pozornosti prinášajú aj obchodné výsledky? Čo sa mení a na čo sa treba ešte pripraviť?"},
+ {id:"m4",st:"M",a:"10:30",b:"11:00",t:"3 chyby, ktoré zabíjajú vašu efektivitu v marketingu",
+  sp:[["Lucia Petrášová","Chief Brand & Communication Officer, O2 Slovensko"],["Peter Holík","Head of Brand Strategy and Communication, Slovenská sporiteľňa"],["Renáta Peťovská","Chief Commercial Officer, Coop Jednota"]],
+  d:"Marketingové rozpočty rastú, dát pribúda a technológie sú výkonnejšie než kedykoľvek predtým. Napriek tomu mnohé značky nedosahujú očakávané výsledky. 3 experti predstavia na 3 slajdoch 3 najväčšie omyly, ktoré brzdia rast, návratnosť investícií a dlhodobú výkonnosť marketingu."},
+ {id:"m5",st:"M",a:"11:00",b:"11:30",t:"Influencer bez srdca",
+  sp:[["Roland Kyška","riaditeľ pre marketing a komunikáciu, SWAN/4ka"],["Štvorec","digitálny influencer 4ky"]],
+  d:"Vraj marketérom zoberie prácu AI. Ale čo ak ju skôr preberú roboti? 4ka v lete prijala humanoidného robota Štvorca a urobila z neho digitálneho influencera. Bol to len marketingový úlet, alebo môže mať robot pre značku reálnu hodnotu? Čo fungovalo, čo nie, a dokáže influencer bez srdca chytiť ľudí za srdce?"},
+ {id:"mb",st:"M",a:"11:30",b:"12:30",brk:"Obed"},
+ {id:"m6",st:"M",a:"12:30",b:"13:00",t:"Silná značka",
+  sp:[["Boris Chmel","riaditeľ vonkajších vzťahov a komunikácie, Tipsport"],["Miroslava Remenárová","Head of Public Affairs and Sustainability, Slovak Telekom"],["Andrej Mitáš","brandingový a employer brandingový stratég, zakladateľ GALTON Brands"]],
+  d:"Dôvera sa nedá kúpiť. Autenticita sa nedá predstierať. Relevancia sa nedá vynútiť. Práve tieto tri hodnoty dnes rozhodujú o sile značiek, firiem aj lídrov. Ako ich budovať, udržať a pretaviť do komunikácie, ktorá vytvára dlhodobé vzťahy a skutočný vplyv."},
+ {id:"m7",st:"M",a:"13:00",b:"13:30",t:"Vo vzťahoch s influencermi nie sme prelietaví",
+  sp:[["Tomáš Palovský","Head of Communication and Brand Reputation, Orange"],["Rasťo Paulíny","influencer"],["Marek Suchitra","Head of social media, MADE BY VACULIK"]],
+  d:"Influencera si neprenajímame na jednu kampaň, budujeme s ním vzťah. Na príbehu, ktorý Orange a MADE BY VACULIK píšu s Rasťom Paulínym a ktorý za tri roky prerástol z krátkodobých aktivácií do tváre celej značky Yoxo, ukážeme, prečo dlhodobé partnerstvá porážajú jednorazovky. Pohľad značky, agentúry aj influencera na jednom pódiu."},
+ {id:"m8",st:"M",a:"14:00",b:"14:30",t:"Temná stránka AI v marketingu: Prečo je skvelý sluha, ale nebezpečný pán?",
+  sp:[["Ľubomír Šimášek","CEO, Mediaboard Slovensko"]],
+  d:"Generatívna AI dnes mení spôsob, akým agentúry pracujú, no spoliehať sa na ňu pri tvorbe vlastných monitoringov a analýz môže byť drahá chyba. Kde AI zlyháva, ktoré dáta jej chýbajú a ako nespadnúť do pasce slepej dôvery voči algoritmom? Praktický pohľad na limity AI v marketingovej praxi."},
+ {id:"m9",st:"M",a:"14:30",b:"15:00",t:"Pozor, vaša konkurencia zatlačila na pílu",
+  sp:[["Alex Prochyra","zakladateľ, Zircon Tree"]],
+  d:"Čo sa dá vidieť o cudzích kampaniach z verejných dát, a čo s tým? Slovenský digitálny reklamný trh sa v rokoch 2025–2026 zmenil a všetko je vidieť v Meta Ad Library, TikTok Ad Library a Google Ads Transparency Center. Ako trh vyzerá, čo sa dá z dát vytiahnuť, čo značka získa a 5 otázok, ktoré by si mala vedieť zodpovedať. Len dáta, metóda a framework."},
+ {id:"m10",st:"M",a:"15:00",b:"16:00",t:"Ako športový marketing reálne predáva (a ako zmerať jeho ROI)",
+  sp:[["Vlado Janček","moderátor, Sports Marketing Specialist, Think Big Collective"],["Jozef Krupa","Allianz Slovensko"],["Maroš Vavrovič","Orange Slovensko"],["Oľga Hammer","Slovenský olympijský a športový výbor"]],
+  d:"Šport už dávno nie je len o logu na drese. Pre značky je to unikátny priestor, ako sa dostať bližšie k ľuďom, pracovať s emóciou, budovať dôveru a prepájať marketing s reálnym biznisom. Ako túto hodnotu vytvoriť, aktivovať a zmerať? Prečo firmy investujú do športu a čo musí šport ponúknuť, aby neostal iba pri viditeľnosti loga."},
+
+ // ---- NEW ERA ----
+ {id:"e1",st:"E",a:"09:30",b:"10:00",t:"Keď reklamu tvorí AI: Kto vlastní dielo a čo musíte označiť?",
+  sp:[["Peter Marciš","partner, NITSCHNEIDER & PARTNERS"]],
+  d:"AI dokáže vytvoriť vizuály, texty aj celé kampane za pár sekúnd. Kto však vlastní výsledok? Aké povinnosti vznikajú podľa novej európskej regulácie? Praktické príklady z reklamnej praxe a pravidlá označovania AI obsahu, ktoré by marketéri nemali ignorovať."},
+ {id:"e2",st:"E",a:"11:30",b:"12:00",t:"Ako zabezpečiť, aby vašu značku odporúčala AI",
+  sp:[["Gabriel Tóth","CEO, New School Communication"]],
+  d:"Čo hovorí ChatGPT, Gemini, Claude o vašej značke? Čo rozhoduje o vašej AI visibilite? Ukážeme, čo konkrétne urobiť, aby si AI spomenula práve na vás a ukázala vás v čo najlepšom obraze."},
+ {id:"e3",st:"E",a:"12:00",b:"12:30",t:"Čo robia úspešné firmy na LinkedIne inak?",
+  sp:[["Jiří Jambor","Co-founder & Digital Business Development, Future Sales"]],
+  d:"LinkedIn nie je sociálna sieť, je to obchodný nástroj. Ako jeho potenciál premeniť na nové obchodné príležitosti, kvalitné leady a silnejšiu pozíciu značky. Na príkladoch ukážeme, ako prepájať obsah, osobné značky manažérov, employer branding aj obchod do jedného systému, ako merať výsledky a kde firmy robia chyby."},
+ {id:"e4",st:"E",a:"12:30",b:"13:00",t:"AI: Nový člen vášho marketingového tímu (workshop)",
+  sp:[["Martin Woska","Chief Creative and Strategy Officer, TRIAD"]],
+  d:"AI mení spôsob, akým marketéri tvoria obsah, analyzujú dáta aj pripravujú kampane. Na workshope si ukážeme, ako efektívne využívať najnovšie AI nástroje v každodennej práci, ako písať lepšie prompty a kde AI ušetrí čas bez straty kvality."},
+ {id:"eb",st:"E",a:"13:00",b:"13:30",brk:"Obed"},
+ {id:"e5",st:"E",a:"13:30",b:"14:00",t:"TikTok pre značky, ktoré chcú rásť",
+  sp:[["Alexandra Schild","social media manager, LIDL"],["Lucia Medveď","Bears Agency"],["Lucia Sládečková","makeup artist & hairstylist, content creator"]],
+  d:"Prečo dnes táto sociálna sieť patrí medzi najsilnejšie marketingové kanály, ako na nej komunikujú úspešné firmy a ako môžete aj vy vytvárať obsah, ktorý buduje povedomie aj predaje."},
+ {id:"e6",st:"E",a:"15:00",b:"15:30",t:"Osobná značka sa sama nevybuduje: Ako tvoriť obsah, ktorý prináša výsledky",
+  sp:[["Filip Kuna","Content marketing & native advertising expert"]],
+  d:"Dobrý obsah dnes nestačí len vytvoriť. Treba ho dostať k správnym ľuďom a dlhodobo budovať dôveru, povedomie aj značku. Prečo je tvorba a distribúcia obsahu jednou z najsilnejších marketingových disciplín, ako využiť všetky dostupné kanály a čo robiť, aby váš obsah nezostal nepovšimnutý."},
+
+ // ---- MEDIA ----
+ {id:"d1",st:"D",a:"10:00",b:"10:20",t:"Reality check slovenských médií: Čo nám hovoria dáta o roku 2026",
+  sp:[["Ľubomír Šimášek","CEO, Mediaboard Slovensko"]],
+  d:"Ako sa za posledný rok zmenila slovenská mediálna krajina? Ktoré témy dominujú, kto získava najviac priestoru a čo sa dá vyčítať z dát? Mediaboard porovná vývoj v roku 2026 s predchádzajúcim rokom a otvorí otázku, čo s kvalitou a dôveryhodnosťou žurnalistiky robí nástup AI-generovaného obsahu a fenomén AI slop."},
+ {id:"d2",st:"D",a:"10:20",b:"11:30",t:"Televízia v budúcnosti",
+  sp:[["Marcel Grega","generálny riaditeľ, JOJ Group"],["Peter Gažík","generálny riaditeľ, Markíza Group"],["Maroš Havran","generálny riaditeľ, ta3"],["Kristián Baráti","riaditeľ Centra B2C segmentu, Markíza Group"],["Nikoleta Nagyová","project & product manager, Joj Play"],["Natália Vlk","Commercial Director, Zenith"]],
+  d:"Z televízneho vysielania sa stáva flexibilný, dátovo riadený a platformový ekosystém. Akú úlohu zohrávajú streamingové služby, sociálne siete a hybridné modely? Ktoré formáty bavia publikum? Ktorý model monetizácie je efektívny: predplatné, klasická reklama, alebo sa blížime k ére programmaticu? Kde sa stretáva kreativita, technológia a biznis."},
+ {id:"d3",st:"D",a:"11:30",b:"12:00",t:"The Future of News",
+  sp:[["Vladimir Mužík","Group head of news and current affairs strategy, CME"],["Hana de Goeij","Group Head of News & Current Affairs Streaming Strategy, CME"]],
+  d:"Úloha televízneho spravodajstva sa v čase AI, digitálnych platforiem a rastúcej fragmentácie pozornosti mení. Lídri CME predstavia pohľad na budúcnosť správ v stredoeurópskom priestore, kľúčové trendy mediálneho biznisu a stratégie tradičných médií v novom informačnom prostredí."},
+ {id:"db",st:"D",a:"12:00",b:"13:00",brk:"Obed"},
+ {id:"d4",st:"D",a:"13:00",b:"13:30",t:"Čo znamená moderné verejnoprávne médium v roku 2026",
+  sp:[["Martina Flašíková","generálna riaditeľka, STVR"]],d:""},
+ {id:"d5",st:"D",a:"13:30",b:"14:00",t:"Dôvera: Najväčšia konkurenčná výhoda rádia v digitálnej ére",
+  sp:[["Ivan Antala","generálny riaditeľ, BAUER MEDIA SLOVENSKO"],["Marek Mikúšek","programový riaditeľ, RADIO GROUP"],["Dušan Vančo","riaditeľ, Trnavské rádio"],["Peter Janků","riaditeľ, Slovenský rozhlas"]],
+  d:"V čase informačného pretlaku, algoritmov, AI a rastúcej nedôvery voči online obsahu sa dôveryhodnosť stáva jednou z najcennejších mediálnych komodít. Rádio si dlhodobo udržiava silný vzťah s publikom vďaka známym hlasom, lokálnemu ukotveniu a schopnosti byť súčasťou každodenného života poslucháčov."},
+ {id:"d6",st:"D",a:"14:00",b:"14:30",t:"Brand alebo Performance: (digital) audio ako most medzi zásahom a výkonom",
+  sp:[["Michal Takáč","Head of Digital Sales, Bauer Media Slovakia"]],
+  d:"Digitálne audio počúva na Slovensku týždenne 71 % populácie a priemerný čas počúvania presahuje 18 hodín týždenne. Prináša inkrementálny reach mimo FM vysielania a kombinuje masový zásah s presným cielením a vysokou pozornosťou. Konkrétne dáta a príklady z trhu o úlohe audia v stratégii značky."},
+ {id:"d7",st:"D",a:"14:30",b:"15:00",t:"Publisheri v novej realite",
+  sp:[["Peter Mačinga","Executive Board Member, Petit Press"],["Ivan Netík","managing director, MAFRA Slovensko"],["František Novák","managing director, RINGIER Slovakia"]],
+  d:"Publikum sa presúva medzi platformami, mení sa spôsob konzumácie obsahu a tradičné zdroje príjmov čelia tlaku. Globálne platformy získavajú významnú časť reklamných investícií. Čo dnes rozhoduje o úspechu vydavateľa, za čo je publikum ochotné platiť a kde vidia možnosti rastu?"}
+];
+
+/* ---------- HELPERS ---------- */
+const $ = id => document.getElementById(id);
+const toMin = s => { const [h,m] = s.split(":").map(Number); return h*60+m; };
+const dateAt = hhmm => { const [h,m]=hhmm.split(":").map(Number); return new Date(DAY.y, DAY.m-1, DAY.d, h, m, 0); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const byId = Object.fromEntries(S.map(x => [x.id, x]));
+
+let favs = new Set();
+let lead = 10;
+let view = "all";      // all | fav
+let stage = "ALL";     // ALL | M | D | E
+let open = new Set();
+let notifyOn = false;
+const fired = new Set();
+
+/* ---------- STORAGE (persists between visits) ---------- */
+const KEY = "sf-state";
+async function readSaved(){
+  // 1) Claude artifact storage
+  try{
+    if(window.storage && typeof window.storage.get === "function"){
+      const r = await window.storage.get(KEY);
+      if(r && r.value) return r.value;
+    }
+  }catch(e){}
+  // 2) normal browser storage (when the file is opened on its own)
+  try{ const v = window.localStorage.getItem(KEY); if(v) return v; }catch(e){}
+  return null;
+}
+async function load(){
+  try{
+    const raw = await readSaved();
+    if(raw){
+      const v = JSON.parse(raw);
+      favs = new Set((v.favs||[]).filter(id => byId[id] && !byId[id].brk));
+      lead = v.lead || 10;
+      notifyOn = !!v.notifyOn;
+    }
+  }catch(e){}
+}
+async function save(){
+  const raw = JSON.stringify({favs:[...favs], lead, notifyOn});
+  let ok = false;
+  try{
+    if(window.storage && typeof window.storage.set === "function"){
+      const r = await window.storage.set(KEY, raw);
+      ok = !!r;
+    }
+  }catch(e){}
+  try{ window.localStorage.setItem(KEY, raw); ok = true; }catch(e){}
+  // if nothing could be saved, the app simply keeps your picks until the page is closed
+}
+
+/* ---------- RENDER ---------- */
+function overlapsWith(s){
+  if(!favs.has(s.id)) return [];
+  return [...favs].map(id => byId[id]).filter(o => o.id !== s.id && toMin(s.a) < toMin(o.b) && toMin(o.a) < toMin(s.b));
+}
+function nowMin(){
+  const n = new Date();
+  if(n.getFullYear()!==DAY.y || n.getMonth()!==DAY.m-1 || n.getDate()!==DAY.d) return -1;
+  return n.getHours()*60 + n.getMinutes();
+}
+
+function cardHTML(s){
+  const g = STAGES[s.st];
+  const isFav = favs.has(s.id);
+  const nm = nowMin();
+  const live = nm>=0 && nm>=toMin(s.a) && nm<toMin(s.b);
+  const ov = overlapsWith(s);
+  const spk = s.sp.map(([n,r]) => `<li><b>${esc(n)}</b>${r?` <span>${esc(r)}</span>`:""}</li>`).join("");
+  const isOpen = open.has(s.id);
+  return `
+  <article class="card ${isFav?"fav":""} ${live?"now":""} ${isOpen?"open":""}" style="--c:${g.color};--ct:${g.tint}" data-id="${s.id}">
+    <div class="bar"></div>
+    <div class="body">
+      <div class="meta"><span class="stage">${g.short}</span><span>${s.a}–${s.b}</span>${live?`<span class="live">Práve prebieha</span>`:""}</div>
+      <button class="title" data-toggle="${s.id}" aria-expanded="${isOpen}">${esc(s.t)}</button>
+      <ul class="spk">${spk}</ul>
+      ${s.d?`<p class="desc">${esc(s.d)}</p><button class="more" data-toggle="${s.id}">${isOpen?"Skryť popis":"Zobraziť popis"}</button>`:""}
+      ${ov.length?`<div class="warn">Prekrýva sa s: ${ov.map(o=>esc(o.t)).join(", ")}</div>`:""}
+    </div>
+    <button class="heart" data-fav="${s.id}" aria-pressed="${isFav}" aria-label="${isFav?"Odobrať z obľúbených":"Pridať do obľúbených"}">
+      <svg viewBox="0 0 24 24" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.5 2.8 5 6.2 5c2 0 3.4 1.1 4.2 2.4h3.2C14.4 6.1 15.8 5 17.8 5c3.4 0 5.3 3.500 3.800 6.800C19.500 16.400 12 21 12 21z"/></svg>
+    </button>
+  </article>`;
+}
+
+function render(){
+  $("cnt").textContent = favs.size;
+  $("tab-all").setAttribute("aria-selected", view==="all");
+  $("tab-fav").setAttribute("aria-selected", view==="fav");
+  $("bell").classList.toggle("on", notifyOn);
+
+  // chips
+  const chips = [["ALL","Všetky",null],["M","Marketing",STAGES.M.color],["D","Media",STAGES.D.color],["E","New Era",STAGES.E.color]];
+  $("chips").innerHTML = chips.map(([k,l,c]) =>
+    `<button class="chip" data-stage="${k}" aria-pressed="${stage===k}">${c?`<i style="background:${c}"></i>`:""}${l}</button>`).join("");
+
+  let items = S.filter(s => stage==="ALL" || s.st===stage);
+  if(view==="fav") items = items.filter(s => favs.has(s.id));
+  // breaks only when looking at a single stage in the full program
+  if(!(view==="all" && stage!=="ALL")) items = items.filter(s => !s.brk);
+
+  if(!items.length){
+    $("list").innerHTML = view==="fav"
+      ? `<div class="empty"><b>Zatiaľ si nič neoznačil</b>V programe ťukni na srdiečko pri prednáške, ktorú nechceš zmeškať.</div>`
+      : `<div class="empty"><b>Nič tu nie je</b>Skús iný stage.</div>`;
+    return;
+  }
+
+  items.sort((x,y) => toMin(x.a)-toMin(y.a) || x.st.localeCompare(y.st));
+  const groups = [];
+  for(const s of items){
+    const last = groups[groups.length-1];
+    if(last && last.a===s.a) last.items.push(s); else groups.push({a:s.a, items:[s]});
+  }
+
+  $("list").innerHTML = groups.map(g => {
+    const body = g.items.map(s => s.brk
+      ? `<div class="brk" style="border-color:${STAGES[s.st].color}"><span>${s.brk}</span><span>${s.a}–${s.b}</span></div>`
+      : cardHTML(s)).join("");
+    return `<section class="slot"><div class="time">${g.a}</div><div class="items">${body}</div></section>`;
+  }).join("");
+}
+
+/* ---------- EVENTS ---------- */
+document.addEventListener("click", e => {
+  const f = e.target.closest("[data-fav]");
+  if(f){
+    const id = f.dataset.fav;
+    favs.has(id) ? favs.delete(id) : favs.add(id);
+    save(); render(); return;
+  }
+  const t = e.target.closest("[data-toggle]");
+  if(t){
+    const id = t.dataset.toggle;
+    const s = byId[id];
+    if(!s.d) return;
+    open.has(id) ? open.delete(id) : open.add(id);
+    render(); return;
+  }
+  const c = e.target.closest("[data-stage]");
+  if(c){ stage = c.dataset.stage; render(); return; }
+});
+$("tab-all").onclick = () => { view="all"; render(); window.scrollTo({top:0}); };
+$("tab-fav").onclick = () => { view="fav"; render(); window.scrollTo({top:0}); };
+
+$("bell").onclick = () => {
+  const p = $("panel");
+  p.hidden = !p.hidden;
+  $("bell").setAttribute("aria-expanded", String(!p.hidden));
+  if(!p.hidden) refreshStatus();
+};
+$("lead").onchange = e => { lead = Number(e.target.value); save(); refreshStatus(); };
+
+/* ---------- NOTIFICATIONS ---------- */
+function refreshStatus(msg){
+  const el = $("status");
+  if(msg){ el.textContent = msg; return; }
+  const sys = ("Notification" in window) ? Notification.permission : "unsupported";
+  const parts = [];
+  parts.push(notifyOn ? `Upozornenia sú zapnuté, ${lead} min pred začiatkom.` : "Upozornenia sú vypnuté.");
+  if(notifyOn){
+    parts.push("Upozornenie sa zobrazí hore v aplikácii, kým je otvorená.");
+    if(sys==="granted") parts.push("Systémové upozornenia fungujú.");
+    else parts.push("Aj keď appku zavrieš, spoľahlivo ťa upozorní kalendár: použi „Pridať do kalendára“.");
+  }
+  el.textContent = parts.join(" ");
+}
+
+$("perm").onclick = async () => {
+  notifyOn = !notifyOn;
+  if(notifyOn && "Notification" in window && Notification.permission === "default"){
+    try{ await Notification.requestPermission(); }catch(e){}
+  }
+  $("perm").textContent = notifyOn ? "Vypnúť upozornenia" : "Zapnúť upozornenia";
+  save(); refreshStatus(); render();
+};
+
+function showToast(title, sub){
+  $("tt").textContent = title; $("ts").textContent = sub;
+  $("toast").classList.add("show");
+  if(navigator.vibrate) try{ navigator.vibrate([200,100,200]); }catch(e){}
+  clearTimeout(showToast.t);
+  showToast.t = setTimeout(() => $("toast").classList.remove("show"), 20000);
+}
+$("tclose").onclick = () => $("toast").classList.remove("show");
+
+function notify(s, minsLeft){
+  const g = STAGES[s.st];
+  const title = minsLeft<=0 ? `Začína: ${s.t}` : `O ${minsLeft} min: ${s.t}`;
+  const sub = `${g.name}, ${s.a}–${s.b}`;
+  showToast(title, sub);
+  if("Notification" in window && Notification.permission === "granted"){
+    try{ new Notification(title, {body: sub}); }catch(e){}
+  }
+}
+
+$("test").onclick = () => {
+  const first = [...favs].map(id=>byId[id]).sort((a,b)=>toMin(a.a)-toMin(b.a))[0] || S.find(x=>!x.brk);
+  notify(first, lead);
+  refreshStatus(favs.size ? "Takto bude upozornenie vyzerať." : "Takto bude upozornenie vyzerať. Zatiaľ nemáš žiadne obľúbené prednášky.");
+};
+
+function tick(){
+  if(!notifyOn) return;
+  const now = Date.now();
+  for(const id of favs){
+    const s = byId[id];
+    const start = dateAt(s.a).getTime();
+    const trigger = start - lead*60000;
+    const key = id+":"+lead;
+    if(now >= trigger && now < start && !fired.has(key)){
+      fired.add(key);
+      notify(s, Math.max(1, Math.round((start-now)/60000)));
+    }
+  }
+  // refresh "Práve prebieha" badge once a minute
+  if(new Date().getSeconds() < 15 && nowMin()>=0) render();
+}
+setInterval(tick, 15000);
+
+/* ---------- CALENDAR EXPORT (.ics with alarms) ---------- */
+function utc(hhmm){
+  const d = dateAt(hhmm);
+  const p = n => String(n).padStart(2,"0");
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}00Z`;
+}
+const ics = s => String(s).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
+
+$("ics").onclick = () => {
+  if(!favs.size){ refreshStatus("Najprv si označ aspoň jednu prednášku srdiečkom."); return; }
+  const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Strategie Forum//SK","CALSCALE:GREGORIAN"];
+  for(const id of favs){
+    const s = byId[id], g = STAGES[s.st];
+    const who = s.sp.map(([n,r]) => r?`${n} (${r})`:n).join("; ");
+    lines.push("BEGIN:VEVENT",
+      `UID:${id}-sf2026@strategie-forum`,
+      `DTSTAMP:${utc("00:00")}`,
+      `DTSTART:${utc(s.a)}`,
+      `DTEND:${utc(s.b)}`,
+      `SUMMARY:${ics(s.t)}`,
+      `LOCATION:${ics(g.name+", DoubleTree by Hilton Bratislava")}`,
+      `DESCRIPTION:${ics(who)}`,
+      "BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${ics(s.t)}`,`TRIGGER:-PT${lead}M`,"END:VALARM",
+      "END:VEVENT");
+  }
+  lines.push("END:VCALENDAR");
+  const blob = new Blob([lines.join("\r\n")], {type:"text/calendar"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "strategie-forum-moj-program.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  refreshStatus(`Súbor s ${favs.size} prednáškami je stiahnutý. Otvor ho a pridaj do kalendára, upozornenie príde ${lead} min pred začiatkom.`);
+};
+
+/* ---------- INIT ---------- */
+(async function init(){
+  await load();
+  $("lead").value = String(lead);
+  $("perm").textContent = notifyOn ? "Vypnúť upozornenia" : "Zapnúť upozornenia";
+  render();
+  refreshStatus();
+  // on the day itself, jump to the current slot
+  if(nowMin()>=0){
+    setTimeout(() => { const n = document.querySelector(".card.now"); if(n) n.scrollIntoView({block:"center"}); }, 200);
+  }
+})();
+</script>
+</body>
+</html>
